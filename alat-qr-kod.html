@@ -206,6 +206,38 @@
             cursor: pointer;
         }
 
+        .size-presets {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .size-preset-btn {
+            flex: 1;
+            background: #eef0fb;
+            color: #4a4fa0;
+            border: 2px solid #dcdff5;
+            padding: 8px 6px;
+            margin: 0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .size-preset-btn:hover {
+            background: #667eea;
+            color: #fff;
+            border-color: #667eea;
+        }
+
+        .size-preset-btn.active {
+            background: #667eea;
+            color: #fff;
+            border-color: #667eea;
+        }
+
         button {
             background: #667eea;
             color: white;
@@ -288,7 +320,7 @@
 <body>
     <div class="container" id="app-content">
         <h1>☕ QR Kod Karta Pića - Dizajner</h1>
-        <p class="subtitle">Kreirajte profesionalnu karticu za štampu (10x10cm, 300 DPI)</p>
+        <p class="subtitle" id="card-subtitle">Kreirajte profesionalnu karticu za štampu (10x10cm, 300 DPI)</p>
         
         <div class="editor-layout">
             <!-- LEFT SIDE - INPUTS -->
@@ -389,6 +421,21 @@
                         <label>Veličina loga u QR kodu: <span id="logo-size-label">45%</span></label>
                         <input type="range" id="logo-size-slider" min="25" max="60" value="45" step="5" style="width: 100%;">
                         <p class="info-text">Povećajte ili smanjite logo u sredini QR koda</p>
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <h3>📐 Veličina Kartice</h3>
+
+                    <div class="form-group">
+                        <label>Veličina kartice: <span id="card-size-label">10 x 10 cm</span></label>
+                        <input type="range" id="card-size-slider" min="5" max="15" value="10" step="0.5" style="width: 100%;">
+                        <div class="size-presets">
+                            <button type="button" class="size-preset-btn" data-target="card-size-slider" data-cm="6">6 cm</button>
+                            <button type="button" class="size-preset-btn" data-target="card-size-slider" data-cm="8">8 cm</button>
+                            <button type="button" class="size-preset-btn" data-target="card-size-slider" data-cm="10">10 cm</button>
+                        </div>
+                        <p class="info-text">Kartica je uvijek kvadratna (širina = visina). Svi elementi (QR kod, tekst, ikona) se srazmjerno smanjuju/povećavaju zajedno sa karticom. Štampa se uvijek u 300 DPI.</p>
                     </div>
                 </div>
 
@@ -536,6 +583,28 @@
             generateCard();
         });
         
+        // 300 DPI: 1cm = 300/2.54 px
+        const PX_PER_CM = 300 / 2.54;
+        function pxToCm(px) {
+            return (px / PX_PER_CM).toFixed(1);
+        }
+        function cmToPx(cm) {
+            return Math.round(cm * PX_PER_CM);
+        }
+
+        let cardSizeCm = 10;
+
+        document.getElementById('card-size-slider').addEventListener('input', function() {
+            cardSizeCm = parseFloat(this.value);
+            document.getElementById('card-size-label').textContent = cardSizeCm + ' x ' + cardSizeCm + ' cm';
+            const subtitle = document.getElementById('card-subtitle');
+            if (subtitle) {
+                subtitle.textContent = 'Kreirajte profesionalnu karticu za štampu (' + cardSizeCm + 'x' + cardSizeCm + 'cm, 300 DPI)';
+            }
+            updateActivePresets();
+            generateCard();
+        });
+
         document.getElementById('qr-size-slider').addEventListener('input', function() {
             qrCodeSize = this.value;
             document.getElementById('qr-size-label').textContent = qrCodeSize + 'px';
@@ -547,6 +616,27 @@
             document.getElementById('icon-size-label').textContent = iconSize + 'px';
             generateCard();
         });
+
+        // Quick cm preset buttons (6 / 8 / 10 cm) for overall card size
+        document.querySelectorAll('.size-preset-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const targetId = btn.dataset.target;
+                const cm = parseFloat(btn.dataset.cm);
+                const slider = document.getElementById(targetId);
+                const clamped = Math.min(Math.max(cm, parseFloat(slider.min)), parseFloat(slider.max));
+                slider.value = clamped;
+                slider.dispatchEvent(new Event('input'));
+            });
+        });
+
+        function updateActivePresets() {
+            document.querySelectorAll('.size-preset-btn').forEach(function(btn) {
+                const slider = document.getElementById(btn.dataset.target);
+                const cm = parseFloat(btn.dataset.cm);
+                const clamped = Math.min(Math.max(cm, parseFloat(slider.min)), parseFloat(slider.max));
+                btn.classList.toggle('active', parseFloat(slider.value) === clamped);
+            });
+        }
 
         document.getElementById('radius-slider').addEventListener('input', function() {
             cornerRadius = parseInt(this.value);
@@ -573,8 +663,12 @@
             const canvas = document.getElementById('final-canvas');
             const ctx = canvas.getContext('2d');
             
-            // 10cm at 300 DPI = 1181 pixels
-            const size = 1181;
+            // Card is always square. cardSizeCm is user-selectable (default 10cm).
+            // Everything below is designed against a 10cm / 1181px reference and
+            // multiplied by cardScale so the whole layout scales proportionally.
+            const REFERENCE_PX = 1181; // 10cm at 300 DPI
+            const size = cmToPx(cardSizeCm);
+            const cardScale = size / REFERENCE_PX;
             canvas.width = size;
             canvas.height = size;
             
@@ -592,7 +686,7 @@
             
             ctx.save();
             if (cornerRadius > 0) {
-                drawRoundedRectPath(ctx, 0, 0, size, size, cornerRadius);
+                drawRoundedRectPath(ctx, 0, 0, size, size, cornerRadius * cardScale);
                 ctx.clip();
             }
             
@@ -604,23 +698,23 @@
             if (showIcon) {
                 if (uploadedIcon) {
                     // Draw uploaded icon with text color overlay
-                    const iconX = size/2 - iconSize/2;
-                    // Fixed Y position - doesn't move based on size
-                    const iconY = 60;
+                    const effIconSize = iconSize * cardScale;
+                    const iconX = size/2 - effIconSize/2;
+                    const iconY = 60 * cardScale;
                     
                     // Create a temporary canvas to apply color filter
                     const tempIconCanvas = document.createElement('canvas');
-                    tempIconCanvas.width = iconSize;
-                    tempIconCanvas.height = iconSize;
+                    tempIconCanvas.width = effIconSize;
+                    tempIconCanvas.height = effIconSize;
                     const tempIconCtx = tempIconCanvas.getContext('2d');
                     
                     // Draw the icon
-                    tempIconCtx.drawImage(uploadedIcon, 0, 0, iconSize, iconSize);
+                    tempIconCtx.drawImage(uploadedIcon, 0, 0, effIconSize, effIconSize);
                     
                     // Apply color overlay using composite operation
                     tempIconCtx.globalCompositeOperation = 'source-in';
                     tempIconCtx.fillStyle = textColor;
-                    tempIconCtx.fillRect(0, 0, iconSize, iconSize);
+                    tempIconCtx.fillRect(0, 0, effIconSize, effIconSize);
                     
                     // Draw the colored icon to main canvas
                     ctx.imageSmoothingEnabled = true;
@@ -630,13 +724,12 @@
                     // Draw coffee cup icon with saucer (like the image)
                     ctx.strokeStyle = textColor;
                     ctx.fillStyle = textColor;
-                    ctx.lineWidth = 3;
+                    ctx.lineWidth = 3 * cardScale;
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
                     
-                    // Fixed base position regardless of icon size
-                    const iconBaseY = 120;
-                    const iconScale = iconSize / 70; // Scale factor
+                    const iconBaseY = 120 * cardScale;
+                    const iconScale = (iconSize * cardScale) / 70; // Scale factor
                     
                     // Saucer (bottom oval)
                     ctx.beginPath();
@@ -692,34 +785,35 @@
             
             // Title text
             ctx.fillStyle = textColor;
-            ctx.font = 'bold 68px Arial';
+            ctx.font = 'bold ' + Math.round(68 * cardScale) + 'px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(titleText, size/2, 210);
+            ctx.fillText(titleText, size/2, 210 * cardScale);
             
             // Generate QR code
+            const effQrCodeSize = qrCodeSize * cardScale;
             const tempCanvas = document.createElement('canvas');
             const qr = new QRious({
                 element: tempCanvas,
                 value: url,
-                size: qrCodeSize,
+                size: effQrCodeSize,
                 level: 'H',
                 foreground: '#000000',
                 background: '#ffffff'
             });
             
-            // Fixed positions for title and bottom text
-            const titleBottomY = 210; // Title is at Y=210
-            const bottomText1Y = size - 105; // First bottom text
-            const bottomText2Y = size - 50; // Second bottom text
+            // Fixed positions for title and bottom text (scaled with card size)
+            const titleBottomY = 210 * cardScale;
+            const bottomText1Y = size - 105 * cardScale;
+            const bottomText2Y = size - 50 * cardScale;
             
             // Calculate available space for QR code
-            const availableSpace = bottomText1Y - titleBottomY - 40; // 40px margin from title
+            const availableSpace = bottomText1Y - titleBottomY - 40 * cardScale;
             
             // Use smaller of: user's choice or available space
-            let finalQRSize = Math.min(qrCodeSize, availableSpace);
+            let finalQRSize = Math.min(effQrCodeSize, availableSpace);
             
             // Center QR code in available space
-            const qrStartY = titleBottomY + 20; // Start 20px below title
+            const qrStartY = titleBottomY + 20 * cardScale;
             const qrCenterY = qrStartY + (availableSpace - finalQRSize) / 2;
             
             // Draw QR code - centered horizontally and vertically in available space
@@ -740,7 +834,7 @@
                 
                 const logoX = size/2 - logoWidth/2;
                 const logoY = qrCenterY + (finalQRSize - logoHeight) / 2;
-                const padding = 15;
+                const padding = 15 * cardScale;
                 
                 // White background for logo
                 ctx.fillStyle = '#ffffff';
@@ -754,10 +848,10 @@
             
             // Bottom text - FIXED positions
             ctx.fillStyle = textColor;
-            ctx.font = 'bold 50px Arial';
+            ctx.font = 'bold ' + Math.round(50 * cardScale) + 'px Arial';
             ctx.fillText(bottomText1, size/2, bottomText1Y);
             
-            ctx.font = '32px Arial';
+            ctx.font = Math.round(32 * cardScale) + 'px Arial';
             ctx.fillText(bottomText2, size/2, bottomText2Y);
 
             ctx.restore();
@@ -768,7 +862,7 @@
             const dataURL = canvas.toDataURL('image/png');
             
             const link = document.createElement('a');
-            link.download = 'qr-karta-pica-10x10cm.png';
+            link.download = 'qr-karta-pica-' + cardSizeCm + 'x' + cardSizeCm + 'cm.png';
             link.href = dataURL;
             document.body.appendChild(link);
             link.click();
@@ -791,7 +885,7 @@
             const dataURL = flatCanvas.toDataURL('image/jpeg', 1.0);
             
             const link = document.createElement('a');
-            link.download = 'qr-karta-pica-10x10cm.jpg';
+            link.download = 'qr-karta-pica-' + cardSizeCm + 'x' + cardSizeCm + 'cm.jpg';
             link.href = dataURL;
             document.body.appendChild(link);
             link.click();
@@ -806,15 +900,16 @@
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'cm',
-                format: [10, 10]
+                format: [cardSizeCm, cardSizeCm]
             });
             
-            // Embed high-quality PNG at exact 10x10cm, 300 DPI equivalent
-            pdf.addImage(pngDataURL, 'PNG', 0, 0, 10, 10, undefined, 'FAST');
-            pdf.save('qr-karta-pica-10x10cm-stamparija.pdf');
+            // Embed high-quality PNG at exact chosen size, 300 DPI equivalent
+            pdf.addImage(pngDataURL, 'PNG', 0, 0, cardSizeCm, cardSizeCm, undefined, 'FAST');
+            pdf.save('qr-karta-pica-' + cardSizeCm + 'x' + cardSizeCm + 'cm-stamparija.pdf');
         }
 
         // Generate initial card
+        updateActivePresets();
         generateCard();
     </script>
 </body>
