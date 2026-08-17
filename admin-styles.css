@@ -400,10 +400,11 @@ body::before {
   border: 0;
   background: #fff;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.25s ease;
 }
-.tool-frame.visible { opacity: 1; position: relative; }
-.tool-frame:not(.visible) { position: absolute; }
+.tool-frame.visible { opacity: 1; position: relative; pointer-events: auto; }
+.tool-frame:not(.visible) { position: absolute; pointer-events: none; }
 
 .stage-loading {
   position: absolute;
