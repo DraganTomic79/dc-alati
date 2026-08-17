@@ -40,6 +40,12 @@
   @media (max-width:920px){
     .app{grid-template-columns:1fr;}
   }
+  @media (max-width:480px){
+    body{padding:16px 10px;}
+    .controls{padding:20px 16px;}
+    .preview-wrap{padding:0 4px;}
+    h1{font-size:19px;}
+  }
 
   /* ---------- CONTROLS ---------- */
   .controls{
@@ -164,8 +170,9 @@
     align-items:center;
   }
   .preview-shell{
-    width:397px;
-    height:397px;
+    width:100%;
+    max-width:397px;
+    aspect-ratio:1/1;
     overflow:hidden;
     position:relative;
     box-shadow:0 8px 30px rgba(0,0,0,.18);
@@ -178,7 +185,7 @@
     height:794px;
     position:absolute;
     top:0; left:0;
-    transform:scale(0.5);
+    transform:scale(var(--poster-scale, 0.5));
     transform-origin:top left;
     background:radial-gradient(circle at 50% 0%, #1c1c1c 0%, #0a0a0a 65%);
     color:#fff;
@@ -728,6 +735,24 @@ $('printSize').addEventListener('input', () => {
   const v = $('printSize').value;
   $('printSizeVal').textContent = v + ' x ' + v + ' cm';
 });
+
+// Responsive preview scaling: poster is a fixed 794x794px element,
+// so we compute the scale factor from the actual shell width on screen
+// (handles narrow phones, sidebar toggles, orientation changes, etc.)
+function updatePosterScale(){
+  const shell = $('previewShell');
+  if(!shell) return;
+  const w = shell.clientWidth;
+  if(w > 0){
+    document.documentElement.style.setProperty('--poster-scale', (w/794).toFixed(4));
+  }
+}
+if('ResizeObserver' in window){
+  new ResizeObserver(updatePosterScale).observe($('previewShell'));
+} else {
+  window.addEventListener('resize', updatePosterScale);
+}
+updatePosterScale();
 
 updateText();
 generateQR();
