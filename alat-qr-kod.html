@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Kod Karta Pića - Dizajner</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        .editor-layout {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-top: 20px;
+            align-items: start;
+        }
+
+        .preview-section {
+            background: #999;
+            background-image:
+                linear-gradient(45deg, #888 25%, transparent 25%),
+                linear-gradient(-45deg, #888 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #888 75%),
+                linear-gradient(-45deg, transparent 75%, #888 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: sticky;
+            top: 20px;
+        }
+
+        .preview-section h3 {
+            color: #333;
+            background: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            margin: 0 0 15px 0;
+            font-size: 14px;
+        }
+
+        #final-canvas {
+            width: 100%;
+            max-width: 350px;
+            height: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .inputs-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .download-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .download-btn {
+            font-size: 13px;
+            padding: 10px 16px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-jpg { background: #607d8b; }
+        .btn-jpg:hover { background: #4a5f68; }
+        .btn-png { background: #ff9800; }
+        .btn-png:hover { background: #f57c00; }
+        .btn-pdf { background: #e53935; }
+        .btn-pdf:hover { background: #c62828; }
+
+        @media (max-width: 1024px) {
+            .editor-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .preview-section {
+                position: relative;
+                top: 0;
+                order: 2;
+                margin-top: 20px;
+            }
+            
+            .inputs-wrapper {
+                order: 1;
+            }
+
+            #final-canvas {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .input-section {
+                padding: 15px;
+            }
+
+            #final-canvas {
+                max-width: 280px;
+            }
+        }
+
+        .input-section {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: left;
+        }
+
+        .input-section h3 {
+            margin: 0 0 12px 0;
+            color: #333;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="url"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="url"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group input[type="color"] {
+            width: 100%;
+            height: 50px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 600;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #764ba2;
+        }
+
+        .generate-btn {
+            background: #4caf50;
+            font-size: 16px;
+            padding: 14px 30px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .generate-btn:hover {
+            background: #45a049;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-btn {
+            background: #c41e3a;
+            display: inline-block;
+            font-size: 14px;
+            padding: 10px 20px;
+        }
+
+        .upload-btn:hover {
+            background: #a01828;
+        }
+
+        #preview {
+            margin-top: 10px;
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .logo-preview {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .format-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 10px 12px;
+            margin-top: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #1565c0;
+            text-align: left;
+        }
+
+        /* Password Gate Styles */
+        #password-gate {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .gate-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+        }
+
+        .gate-box h2 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 22px;
+        }
+
+        .gate-box p {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .gate-box input[type="password"] {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .gate-box input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .gate-box button {
+            width: 100%;
+            background: #4caf50;
+            padding: 14px;
+            font-size: 16px;
+        }
+
+        .gate-box button:hover {
+            background: #45a049;
+        }
+
+        #gate-error {
+            color: #e53935;
+            font-size: 13px;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Password Gate -->
+    <div id="password-gate">
+        <div class="gate-box">
+            <h2>🔒 Zaštićen Pristup</h2>
+            <p>Unesite lozinku da pristupite QR Kod Generatoru</p>
+            <input type="password" id="gate-password" placeholder="Lozinka" autofocus onkeypress="if(event.key==='Enter') checkPassword()">
+            <button onclick="checkPassword()">Uđi</button>
+            <p id="gate-error">❌ Pogrešna lozinka. Pokušajte ponovo.</p>
+        </div>
+    </div>
+
+    <div class="container" id="app-content" style="display: none;">
+        <h1>☕ QR Kod Karta Pića - Dizajner</h1>
+        <p class="subtitle">Kreirajte profesionalnu karticu za štampu (10x10cm, 300 DPI)</p>
+        
+        <div class="editor-layout">
+            <!-- LEFT SIDE - INPUTS -->
+            <div class="inputs-wrapper">
+                <div class="input-section">
+                    <h3>📝 Tekstovi</h3>
+                    
+                    <div class="form-group">
+                        <label for="title-text">Gornji tekst (naslov):</label>
+                        <input type="text" id="title-text" value="KARTA PIĆA" placeholder="KARTA PIĆA">
+                        <p class="info-text">Tekst iznad QR koda</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="show-icon" checked> Prikaži ikonu iznad naslova
+                        </label>
+                    </div>
+
+                    <div class="form-group" id="icon-upload-section">
+                        <label for="icon-upload">Ikona (možete promijeniti):</label>
+                        
+                        <div style="margin-bottom: 10px;">
+                            <input type="text" id="icon-url" placeholder="Ili unesite URL slike ikone..." style="margin-bottom: 5px;">
+                            <button onclick="loadIconFromURL()" style="background: #2196f3; padding: 8px 16px; font-size: 12px;">🔗 Učitaj sa URL-a</button>
+                        </div>
+                        
+                        <input type="file" id="icon-upload" accept="image/*">
+                        <label for="icon-upload" class="upload-btn button" style="font-size: 12px; padding: 8px 16px;">
+                            <span id="upload-icon-text">📤 Ili Upload-uj Fajl</span>
+                        </label>
+                        <p class="info-text">Defaultna ikona: šoljica kafe. Možete dodati svoju sliku ili URL.</p>
+                        <div class="logo-preview" id="icon-preview" style="display: none;">
+                            <img id="icon-preview-img" style="max-width: 60px; max-height: 60px; border-radius: 8px; border: 2px solid #ddd;" alt="Icon preview">
+                            <button onclick="removeIcon()" style="background: #ff5722; padding: 6px 12px; font-size: 11px;">🔄 Vrati Default</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bottom-text-1">Donji tekst - linija 1:</label>
+                        <input type="text" id="bottom-text-1" value="SKENIRAJTE KAMEROM" placeholder="SKENIRAJTE KAMEROM">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bottom-text-2">Donji tekst - linija 2:</label>
+                        <input type="text" id="bottom-text-2" value="VAŠEG MOBILNOG TELEFONA" placeholder="VAŠEG MOBILNOG TELEFONA">
+                        <p class="info-text">Tekst ispod QR koda</p>
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <h3>🎨 Boje i Dizajn</h3>
+                    
+                    <div class="form-group">
+                        <label for="bg-color">Boja pozadine:</label>
+                        <input type="color" id="bg-color" value="#000000">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="text-color">Boja teksta:</label>
+                        <input type="color" id="text-color" value="#C6A664">
+                        <p class="info-text">Zlatna boja po defaultu (#C6A664)</p>
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <h3>🔗 QR Kod</h3>
+                    
+                    <div class="form-group">
+                        <label for="url-input">URL adresa:</label>
+                        <input type="url" id="url-input" value="https://digitalnicjenovnik.com/4zx6vrcz/" placeholder="https://vas-link.com">
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <h3>🖼️ Logo u QR kodu (opcionalno)</h3>
+                    
+                    <div class="form-group">
+                        <input type="file" id="logo-upload" accept="image/*">
+                        <label for="logo-upload" class="upload-btn button">📤 Dodaj Logo</label>
+                        <p class="info-text">Logo će biti u sredini QR koda</p>
+                        <div class="logo-preview" id="logo-preview" style="display: none;">
+                            <img id="preview" alt="Logo preview">
+                            <button onclick="removeLogo()" style="background: #ff5722; padding: 8px 16px; font-size: 12px;">🗑️ Ukloni</button>
+                        </div>
+
+                        <div class="format-info">
+                            <strong>📋 Preporučena veličina slike za najbolji kvalitet:</strong><br>
+                            • <strong>Minimalno:</strong> 500 × 500 px<br>
+                            • <strong>Preporučeno:</strong> 1000 × 1000 px ili veće<br>
+                            • <strong>Format:</strong> PNG (transparentna pozadina) ili JPG (bijela pozadina)<br>
+                            • <strong>Oblik:</strong> Kvadratan ili blizu kvadratnog (izbjegavajte jako izdužene slike)<br>
+                            • <strong>Veličina fajla:</strong> do 5 MB
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="logo-size-control" style="display: none;">
+                        <label>Veličina loga u QR kodu: <span id="logo-size-label">45%</span></label>
+                        <input type="range" id="logo-size-slider" min="25" max="60" value="45" step="5" style="width: 100%;">
+                        <p class="info-text">Povećajte ili smanjite logo u sredini QR koda</p>
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <h3>📐 Veličine Elemenata</h3>
+                    
+                    <div class="form-group">
+                        <label>Veličina QR koda: <span id="qr-size-label">580px</span></label>
+                        <input type="range" id="qr-size-slider" min="450" max="650" value="580" step="10" style="width: 100%;">
+                        <p class="info-text">Prilagodite veličinu QR koda na kartici</p>
+                    </div>
+
+                    <div class="form-group" id="icon-size-control" style="display: block;">
+                        <label>Veličina ikone: <span id="icon-size-label">70px</span></label>
+                        <input type="range" id="icon-size-slider" min="50" max="100" value="70" step="5" style="width: 100%;">
+                        <p class="info-text">Prilagodite veličinu ikone na vrhu</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Zaobljenost ivica: <span id="radius-label">0px</span></label>
+                        <input type="range" id="radius-slider" min="0" max="150" value="0" step="5" style="width: 100%;">
+                        <p class="info-text">0 = oštri uglovi, veće = zaobljeniji uglovi kartice</p>
+                    </div>
+                </div>
+
+                <button class="generate-btn" onclick="generateCard()">✨ Generiši Karticu</button>
+            </div>
+
+            <!-- RIGHT SIDE - PREVIEW (Sticky) -->
+            <div class="preview-section">
+                <h3>👁️ Pregled</h3>
+                <canvas id="final-canvas" width="1181" height="1181"></canvas>
+                
+                <div class="download-group">
+                    <button class="download-btn btn-png" onclick="downloadPNG()">🖼️ PNG (providni uglovi)</button>
+                    <button class="download-btn btn-pdf" onclick="downloadPDF()">📄 PDF (za štampariju)</button>
+                    <button class="download-btn btn-jpg" onclick="downloadJPG()">📷 JPG (brzo dijeljenje)</button>
+                </div>
+
+                <div class="format-info">
+                    <strong>💡 Koji format odabrati?</strong><br>
+                    <strong>PDF</strong> – najbolji kvalitet, šaljite direktno u štampariju.<br>
+                    <strong>PNG</strong> – zadržava providne (zaobljene) uglove, dobar za dizajnere.<br>
+                    <strong>JPG</strong> – najmanji fajl, za brzo slanje/pregled (uglovi popunjeni bojom pozadine).
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple password gate (password stored encoded, not in plain text)
+        const SITE_PASSWORD_ENCODED = "RHJhZ2FuNjEwNzI4";
+
+        function checkPassword() {
+            const input = document.getElementById('gate-password').value;
+            const decodedPassword = atob(SITE_PASSWORD_ENCODED);
+            if (input === decodedPassword) {
+                document.getElementById('password-gate').style.display = 'none';
+                document.getElementById('app-content').style.display = 'block';
+            } else {
+                document.getElementById('gate-error').style.display = 'block';
+                document.getElementById('gate-password').value = '';
+                document.getElementById('gate-password').focus();
+            }
+        }
+
+        // Ensure password field is focused as soon as the page loads
+        window.addEventListener('load', function() {
+            document.getElementById('gate-password').focus();
+        });
+
+        let uploadedLogo = null;
+        let uploadedIcon = null;
+        let logoSizePercent = 45;
+        let qrCodeSize = 580;
+        let iconSize = 70;
+        let cornerRadius = 0;
+        
+        // Icon upload handler
+        document.getElementById('icon-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedIcon = new Image();
+                    uploadedIcon.onload = function() {
+                        document.getElementById('icon-preview-img').src = event.target.result;
+                        document.getElementById('icon-preview').style.display = 'flex';
+                        generateCard();
+                    };
+                    uploadedIcon.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function removeIcon() {
+            uploadedIcon = null;
+            document.getElementById('icon-upload').value = '';
+            document.getElementById('icon-url').value = '';
+            document.getElementById('icon-preview').style.display = 'none';
+            generateCard();
+        }
+
+        function loadIconFromURL() {
+            const url = document.getElementById('icon-url').value.trim();
+            if (!url) {
+                alert('⚠️ Molimo unesite URL slike!');
+                return;
+            }
+
+            uploadedIcon = new Image();
+            uploadedIcon.crossOrigin = 'anonymous';
+            uploadedIcon.onload = function() {
+                document.getElementById('icon-preview-img').src = url;
+                document.getElementById('icon-preview').style.display = 'flex';
+                generateCard();
+            };
+            uploadedIcon.onerror = function() {
+                alert('❌ Greška pri učitavanju slike sa URL-a. Provjerite da li je link ispravan i da slika postoji.');
+                uploadedIcon = null;
+            };
+            uploadedIcon.src = url;
+        }
+        
+        // Logo upload handler
+        document.getElementById('logo-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedLogo = new Image();
+                    uploadedLogo.onload = function() {
+                        document.getElementById('preview').src = event.target.result;
+                        document.getElementById('logo-preview').style.display = 'flex';
+                        document.getElementById('logo-size-control').style.display = 'block';
+                        generateCard();
+                    };
+                    uploadedLogo.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function removeLogo() {
+            uploadedLogo = null;
+            document.getElementById('logo-upload').value = '';
+            document.getElementById('logo-preview').style.display = 'none';
+            document.getElementById('logo-size-control').style.display = 'none';
+            generateCard();
+        }
+
+        // Auto-generate on input change
+        document.getElementById('title-text').addEventListener('input', generateCard);
+        document.getElementById('bottom-text-1').addEventListener('input', generateCard);
+        document.getElementById('bottom-text-2').addEventListener('input', generateCard);
+        document.getElementById('bg-color').addEventListener('input', generateCard);
+        document.getElementById('text-color').addEventListener('input', generateCard);
+        document.getElementById('url-input').addEventListener('input', generateCard);
+        document.getElementById('show-icon').addEventListener('change', generateCard);
+        
+        // Size controls
+        document.getElementById('logo-size-slider').addEventListener('input', function() {
+            logoSizePercent = this.value;
+            document.getElementById('logo-size-label').textContent = logoSizePercent + '%';
+            generateCard();
+        });
+        
+        document.getElementById('qr-size-slider').addEventListener('input', function() {
+            qrCodeSize = this.value;
+            document.getElementById('qr-size-label').textContent = qrCodeSize + 'px';
+            generateCard();
+        });
+        
+        document.getElementById('icon-size-slider').addEventListener('input', function() {
+            iconSize = this.value;
+            document.getElementById('icon-size-label').textContent = iconSize + 'px';
+            generateCard();
+        });
+
+        document.getElementById('radius-slider').addEventListener('input', function() {
+            cornerRadius = parseInt(this.value);
+            document.getElementById('radius-label').textContent = cornerRadius + 'px';
+            generateCard();
+        });
+
+        function drawRoundedRectPath(ctx, x, y, w, h, r) {
+            r = Math.min(r, w / 2, h / 2);
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.arcTo(x + w, y, x + w, y + r, r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+            ctx.lineTo(x + r, y + h);
+            ctx.arcTo(x, y + h, x, y + h - r, r);
+            ctx.lineTo(x, y + r);
+            ctx.arcTo(x, y, x + r, y, r);
+            ctx.closePath();
+        }
+
+        function generateCard() {
+            const canvas = document.getElementById('final-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 10cm at 300 DPI = 1181 pixels
+            const size = 1181;
+            canvas.width = size;
+            canvas.height = size;
+            
+            // Get user inputs
+            const titleText = document.getElementById('title-text').value || 'KARTA PIĆA';
+            const bottomText1 = document.getElementById('bottom-text-1').value || 'SKENIRAJTE KAMEROM';
+            const bottomText2 = document.getElementById('bottom-text-2').value || 'VAŠEG MOBILNOG TELEFONA';
+            const bgColor = document.getElementById('bg-color').value;
+            const textColor = document.getElementById('text-color').value;
+            const url = document.getElementById('url-input').value || 'https://digitalnicjenovnik.com/4zx6vrcz/';
+            const showIcon = document.getElementById('show-icon').checked;
+            
+            // Clear canvas completely (so corners can be transparent)
+            ctx.clearRect(0, 0, size, size);
+            
+            ctx.save();
+            if (cornerRadius > 0) {
+                drawRoundedRectPath(ctx, 0, 0, size, size, cornerRadius);
+                ctx.clip();
+            }
+            
+            // Background
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Icon section
+            if (showIcon) {
+                if (uploadedIcon) {
+                    // Draw uploaded icon with text color overlay
+                    const iconX = size/2 - iconSize/2;
+                    // Fixed Y position - doesn't move based on size
+                    const iconY = 60;
+                    
+                    // Create a temporary canvas to apply color filter
+                    const tempIconCanvas = document.createElement('canvas');
+                    tempIconCanvas.width = iconSize;
+                    tempIconCanvas.height = iconSize;
+                    const tempIconCtx = tempIconCanvas.getContext('2d');
+                    
+                    // Draw the icon
+                    tempIconCtx.drawImage(uploadedIcon, 0, 0, iconSize, iconSize);
+                    
+                    // Apply color overlay using composite operation
+                    tempIconCtx.globalCompositeOperation = 'source-in';
+                    tempIconCtx.fillStyle = textColor;
+                    tempIconCtx.fillRect(0, 0, iconSize, iconSize);
+                    
+                    // Draw the colored icon to main canvas
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(tempIconCanvas, iconX, iconY);
+                } else {
+                    // Draw coffee cup icon with saucer (like the image)
+                    ctx.strokeStyle = textColor;
+                    ctx.fillStyle = textColor;
+                    ctx.lineWidth = 3;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    
+                    // Fixed base position regardless of icon size
+                    const iconBaseY = 120;
+                    const iconScale = iconSize / 70; // Scale factor
+                    
+                    // Saucer (bottom oval)
+                    ctx.beginPath();
+                    ctx.ellipse(size/2, iconBaseY, 40 * iconScale, 7 * iconScale, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // Cup body
+                    ctx.beginPath();
+                    ctx.moveTo(size/2 - 22 * iconScale, iconBaseY - 20 * iconScale);
+                    ctx.lineTo(size/2 - 27 * iconScale, iconBaseY);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(size/2 + 22 * iconScale, iconBaseY - 20 * iconScale);
+                    ctx.lineTo(size/2 + 27 * iconScale, iconBaseY);
+                    ctx.stroke();
+                    
+                    // Cup top (ellipse)
+                    ctx.beginPath();
+                    ctx.ellipse(size/2, iconBaseY - 20 * iconScale, 22 * iconScale, 5 * iconScale, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // Handle
+                    ctx.beginPath();
+                    ctx.arc(size/2 + 30 * iconScale, iconBaseY - 10 * iconScale, 11 * iconScale, -Math.PI/2, Math.PI/2, false);
+                    ctx.stroke();
+                    
+                    // Steam lines (3 wavy lines)
+                    ctx.lineWidth = 2.5 * iconScale;
+                    
+                    // Left steam
+                    ctx.beginPath();
+                    ctx.moveTo(size/2 - 16 * iconScale, iconBaseY - 25 * iconScale);
+                    ctx.quadraticCurveTo(size/2 - 20 * iconScale, iconBaseY - 35 * iconScale, size/2 - 16 * iconScale, iconBaseY - 45 * iconScale);
+                    ctx.quadraticCurveTo(size/2 - 12 * iconScale, iconBaseY - 55 * iconScale, size/2 - 16 * iconScale, iconBaseY - 65 * iconScale);
+                    ctx.stroke();
+                    
+                    // Middle steam
+                    ctx.beginPath();
+                    ctx.moveTo(size/2, iconBaseY - 23 * iconScale);
+                    ctx.quadraticCurveTo(size/2 - 4 * iconScale, iconBaseY - 33 * iconScale, size/2, iconBaseY - 43 * iconScale);
+                    ctx.quadraticCurveTo(size/2 + 4 * iconScale, iconBaseY - 53 * iconScale, size/2, iconBaseY - 63 * iconScale);
+                    ctx.stroke();
+                    
+                    // Right steam
+                    ctx.beginPath();
+                    ctx.moveTo(size/2 + 16 * iconScale, iconBaseY - 25 * iconScale);
+                    ctx.quadraticCurveTo(size/2 + 12 * iconScale, iconBaseY - 35 * iconScale, size/2 + 16 * iconScale, iconBaseY - 45 * iconScale);
+                    ctx.quadraticCurveTo(size/2 + 20 * iconScale, iconBaseY - 55 * iconScale, size/2 + 16 * iconScale, iconBaseY - 65 * iconScale);
+                    ctx.stroke();
+                }
+            }
+            
+            // Title text
+            ctx.fillStyle = textColor;
+            ctx.font = 'bold 68px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(titleText, size/2, 210);
+            
+            // Generate QR code
+            const tempCanvas = document.createElement('canvas');
+            const qr = new QRious({
+                element: tempCanvas,
+                value: url,
+                size: qrCodeSize,
+                level: 'H',
+                foreground: '#000000',
+                background: '#ffffff'
+            });
+            
+            // Fixed positions for title and bottom text
+            const titleBottomY = 210; // Title is at Y=210
+            const bottomText1Y = size - 105; // First bottom text
+            const bottomText2Y = size - 50; // Second bottom text
+            
+            // Calculate available space for QR code
+            const availableSpace = bottomText1Y - titleBottomY - 40; // 40px margin from title
+            
+            // Use smaller of: user's choice or available space
+            let finalQRSize = Math.min(qrCodeSize, availableSpace);
+            
+            // Center QR code in available space
+            const qrStartY = titleBottomY + 20; // Start 20px below title
+            const qrCenterY = qrStartY + (availableSpace - finalQRSize) / 2;
+            
+            // Draw QR code - centered horizontally and vertically in available space
+            const qrX = (size - finalQRSize) / 2;
+            ctx.drawImage(tempCanvas, qrX, qrCenterY, finalQRSize, finalQRSize);
+            
+            // Add logo to QR code if exists
+            if (uploadedLogo) {
+                const logoSize = Math.round(finalQRSize * (logoSizePercent / 100));
+                const aspectRatio = uploadedLogo.width / uploadedLogo.height;
+                let logoWidth = logoSize;
+                let logoHeight = logoSize / aspectRatio;
+                
+                if (logoHeight > logoSize) {
+                    logoHeight = logoSize;
+                    logoWidth = logoSize * aspectRatio;
+                }
+                
+                const logoX = size/2 - logoWidth/2;
+                const logoY = qrCenterY + (finalQRSize - logoHeight) / 2;
+                const padding = 15;
+                
+                // White background for logo
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(logoX - padding, logoY - padding, logoWidth + padding * 2, logoHeight + padding * 2);
+                
+                // Draw logo
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(uploadedLogo, logoX, logoY, logoWidth, logoHeight);
+            }
+            
+            // Bottom text - FIXED positions
+            ctx.fillStyle = textColor;
+            ctx.font = 'bold 50px Arial';
+            ctx.fillText(bottomText1, size/2, bottomText1Y);
+            
+            ctx.font = '32px Arial';
+            ctx.fillText(bottomText2, size/2, bottomText2Y);
+
+            ctx.restore();
+        }
+
+        function downloadPNG() {
+            const canvas = document.getElementById('final-canvas');
+            const dataURL = canvas.toDataURL('image/png');
+            
+            const link = document.createElement('a');
+            link.download = 'qr-karta-pica-10x10cm.png';
+            link.href = dataURL;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function downloadJPG() {
+            const canvas = document.getElementById('final-canvas');
+            const bgColor = document.getElementById('bg-color').value;
+            
+            // Flatten onto background color (JPG has no transparency)
+            const flatCanvas = document.createElement('canvas');
+            flatCanvas.width = canvas.width;
+            flatCanvas.height = canvas.height;
+            const flatCtx = flatCanvas.getContext('2d');
+            flatCtx.fillStyle = bgColor;
+            flatCtx.fillRect(0, 0, flatCanvas.width, flatCanvas.height);
+            flatCtx.drawImage(canvas, 0, 0);
+            
+            const dataURL = flatCanvas.toDataURL('image/jpeg', 1.0);
+            
+            const link = document.createElement('a');
+            link.download = 'qr-karta-pica-10x10cm.jpg';
+            link.href = dataURL;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function downloadPDF() {
+            const canvas = document.getElementById('final-canvas');
+            const pngDataURL = canvas.toDataURL('image/png', 1.0);
+            
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'cm',
+                format: [10, 10]
+            });
+            
+            // Embed high-quality PNG at exact 10x10cm, 300 DPI equivalent
+            pdf.addImage(pngDataURL, 'PNG', 0, 0, 10, 10, undefined, 'FAST');
+            pdf.save('qr-karta-pica-10x10cm-stamparija.pdf');
+        }
+
+        // Generate initial card
+        generateCard();
+    </script>
+</body>
+</html>

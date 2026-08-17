@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Batch Resize 300x300</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      padding: 30px 20px;
+      min-height: 100vh;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 24px;
+      color: #333;
+      font-size: 20px;
+    }
+
+    /* ── Koraci ── */
+    .steps {
+      max-width: 700px;
+      margin: 0 auto 24px auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .step {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+      overflow: hidden;
+      border: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+
+    .step.active  { border-color: #007bff; }
+    .step.done    { border-color: #28a745; }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+    }
+
+    .step-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #dee2e6;
+      color: #666;
+      font-weight: bold;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .step.active .step-num  { background: #007bff; color: white; }
+    .step.done   .step-num  { background: #28a745; color: white; }
+
+    .step-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: #333;
+      flex: 1;
+    }
+
+    .step-status {
+      font-size: 13px;
+      color: #888;
+    }
+
+    .step.done .step-status { color: #28a745; }
+
+    .step-body {
+      padding: 0 18px 16px 18px;
+      display: none;
+    }
+
+    .step.active .step-body { display: block; }
+
+    /* Folder dugme */
+    .btn-folder {
+      padding: 9px 18px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .btn-folder:hover { background: #0056b3; }
+
+    /* Opcije */
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .option-row:last-child { margin-bottom: 0; }
+    .option-row input[type="checkbox"] {
+      width: 18px; height: 18px;
+      cursor: pointer;
+      accent-color: #007bff;
+    }
+    .option-row label {
+      font-size: 14px;
+      color: #333;
+      cursor: pointer;
+    }
+    .option-row .hint {
+      font-size: 12px;
+      color: #999;
+      margin-left: 4px;
+    }
+
+    /* Upload area */
+    .upload-area {
+      display: block;
+      border: 3px dashed #007bff;
+      border-radius: 10px;
+      background: #f8f9ff;
+      padding: 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .upload-area:hover, .upload-area.drag-over { background: #e8f0fe; }
+    .upload-area p    { color: #555; font-size: 15px; margin-bottom: 6px; pointer-events: none; }
+    .upload-area span { color: #999; font-size: 12px; pointer-events: none; }
+    #fileInput { display: none; }
+
+    /* File lista */
+    #fileList {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #555;
+      display: none;
+    }
+
+    /* Start dugme */
+    #startBtn {
+      display: none;
+      width: 100%;
+      padding: 14px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background 0.2s;
+    }
+    #startBtn:hover    { background: #0056b3; }
+    #startBtn:disabled { background: #6c757d; cursor: not-allowed; }
+
+    /* Progress */
+    #status {
+      text-align: center;
+      color: #555;
+      margin-bottom: 10px;
+      font-size: 14px;
+      min-height: 20px;
+    }
+
+    .progress-bar-wrap {
+      max-width: 700px;
+      margin: 0 auto 16px auto;
+      background: #ddd;
+      border-radius: 8px;
+      height: 8px;
+      display: none;
+    }
+    .progress-bar {
+      height: 8px;
+      background: #007bff;
+      border-radius: 8px;
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    /* Rezultati */
+    .results-bar {
+      text-align: center;
+      margin-bottom: 20px;
+      display: none;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    #downloadAll {
+      padding: 12px 24px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    #downloadAll:hover    { background: #218838; }
+    #downloadAll:disabled { background: #6c757d; cursor: not-allowed; }
+
+    #clearAll {
+      padding: 12px 24px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    #clearAll:hover { background: #c82333; }
+
+    /* Grid */
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 180px;
+    }
+
+    .card canvas {
+      width: 150px; height: 150px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      display: block;
+      margin: 0 auto 8px auto;
+    }
+
+    .card .name {
+      font-size: 11px; color: #666;
+      word-break: break-all;
+      margin-bottom: 8px;
+    }
+
+    .card a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 12px;
+    }
+    .card a:hover { background: #0056b3; }
+
+    .card .processing {
+      font-size: 11px; color: #aaa;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Batch Resize slika na 300x300 px</h2>
+
+<div class="steps">
+
+  <!-- KORAK 1: Folder -->
+  <div class="step active" id="step1">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div class="step-title">Odaberi folder za čuvanje slika</div>
+      <div class="step-status" id="step1Status">nije odabran</div>
+    </div>
+    <div class="step-body">
+      <button class="btn-folder" id="pickFolder">📁 Odaberi folder</button>
+      <span style="font-size:12px;color:#999;">Radi u Chrome i Edge. U Firefox/Safari koristi se standardni download.</span>
+    </div>
+  </div>
+
+  <!-- KORAK 2: Opcije -->
+  <div class="step" id="step2">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div class="step-title">Postavi opcije obrade</div>
+      <div class="step-status" id="step2Status">—</div>
+    </div>
+    <div class="step-body">
+      <div class="option-row">
+        <label for="outputSize" style="font-weight:bold;">📐 Veličina izlazne slike:</label>
+        <select id="outputSize" style="padding:6px 10px;border-radius:6px;border:1px solid #ccc;font-size:14px;cursor:pointer;">
+          <option value="800">800 × 800 px</option>
+          <option value="600">600 × 600 px</option>
+          <option value="400">400 × 400 px</option>
+          <option value="300" selected>300 × 300 px</option>
+        </select>
+      </div>
+      <div class="option-row">
+        <input type="checkbox" id="removeBg" name="removeBg">
+        <label for="removeBg">🪄 Ukloni pozadinu (AI)</label>
+        <span class="hint">— pri prvom korištenju skida model ~50MB</span>
+      </div>
+      <div class="option-row">
+        <input type="checkbox" id="useWatermark" name="useWatermark">
+        <label for="useWatermark">💧 Watermark (www.digitalnicjenovnik.com)</label>
+      </div>
+      <button class="btn-folder" id="confirmOptions" style="margin-top:12px;">Potvrdi opcije →</button>
+    </div>
+  </div>
+
+  <!-- KORAK 3: Upload -->
+  <div class="step" id="step3">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div class="step-title">Odaberi slike</div>
+      <div class="step-status" id="step3Status">—</div>
+    </div>
+    <div class="step-body">
+      <label class="upload-area" id="uploadArea" for="fileInput">
+        <p>📁 Klikni ili prevuci slike ovdje</p>
+        <span>Podržava PNG, JPG, WEBP, AVIF, GIF — više slika odjednom</span>
+        <input type="file" id="fileInput" accept="image/*" multiple>
+      </label>
+      <div id="fileList"></div>
+      <button id="startBtn">🚀 Pokreni obradu</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Progress -->
+<div id="status"></div>
+<div class="progress-bar-wrap" id="progressWrap">
+  <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<!-- Rezultati dugmad -->
+<div class="results-bar" id="resultsBar">
+  <button id="downloadAll">⬇️ Preuzmi sve slike</button>
+  <button id="clearAll">🗑️ Nova obrada</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script src="https://unpkg.com/pica@8.0.0/dist/pica.min.js"></script>
+<script type="module">
+import { removeBackground } from 'https://esm.run/@imgly/background-removal';
+
+const fileInput      = document.getElementById('fileInput');
+const uploadArea     = document.getElementById('uploadArea');
+const grid           = document.getElementById('grid');
+const downloadAllBtn = document.getElementById('downloadAll');
+const clearAllBtn    = document.getElementById('clearAll');
+const statusEl       = document.getElementById('status');
+const progressWrap   = document.getElementById('progressWrap');
+const progressBar    = document.getElementById('progressBar');
+const removeBgCheck  = document.getElementById('removeBg');
+const useWatermark   = document.getElementById('useWatermark');
+const outputSizeEl   = document.getElementById('outputSize');
+const pickFolderBtn  = document.getElementById('pickFolder');
+const confirmOptBtn  = document.getElementById('confirmOptions');
+const startBtn       = document.getElementById('startBtn');
+const fileListEl     = document.getElementById('fileList');
+const resultsBar     = document.getElementById('resultsBar');
+
+const step1 = document.getElementById('step1');
+const step2 = document.getElementById('step2');
+const step3 = document.getElementById('step3');
+
+const processedImages = [];
+const picaInstance = pica();
+let selectedDirHandle = null;
+let pendingFiles = [];
+
+// ── KORAK 1: Folder picker ──
+const fsApiSupported = 'showDirectoryPicker' in window;
+
+pickFolderBtn.addEventListener('click', async () => {
+  if (fsApiSupported) {
+    try {
+      selectedDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      document.getElementById('step1Status').textContent = `📂 ${selectedDirHandle.name}`;
+      document.getElementById('step1Status').style.color = '#28a745';
+    } catch (e) {
+      if (e.name !== 'AbortError') console.error(e);
+      return;
+    }
+  } else {
+    document.getElementById('step1Status').textContent = '📥 Standardni download';
+    document.getElementById('step1Status').style.color = '#888';
+  }
+  step1.classList.remove('active');
+  step1.classList.add('done');
+  step2.classList.add('active');
+});
+
+// ── KORAK 2: Opcije ──
+confirmOptBtn.addEventListener('click', () => {
+  const size = outputSizeEl.value;
+  const opts = [`${size}×${size}px`];
+  if (removeBgCheck.checked) opts.push('AI pozadina');
+  if (useWatermark.checked)  opts.push('Watermark');
+  document.getElementById('step2Status').textContent = opts.join(', ');
+  document.getElementById('step2Status').style.color = '#28a745';
+  step2.classList.remove('active');
+  step2.classList.add('done');
+  step3.classList.add('active');
+});
+
+// ── KORAK 3: Odabir slika ──
+uploadArea.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  uploadArea.classList.add('drag-over');
+});
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadArea.classList.remove('drag-over');
+  setFiles(e.dataTransfer.files);
+});
+
+fileInput.addEventListener('change', (e) => {
+  setFiles(e.target.files);
+  fileInput.value = '';
+});
+
+function setFiles(files) {
+  if (!files.length) return;
+  pendingFiles = Array.from(files);
+  fileListEl.style.display = 'block';
+  fileListEl.innerHTML = `✅ Odabrano <strong>${pendingFiles.length}</strong> slika — klikni "Pokreni obradu" kad si spreman.`;
+  document.getElementById('step3Status').textContent = `${pendingFiles.length} slika odabrano`;
+  document.getElementById('step3Status').style.color = '#007bff';
+  startBtn.style.display = 'block';
+}
+
+// ── START ──
+startBtn.addEventListener('click', async () => {
+  if (!pendingFiles.length) return;
+  startBtn.disabled = true;
+  step3.classList.remove('active');
+  step3.classList.add('done');
+  await handleFiles(pendingFiles);
+});
+
+async function handleFiles(fileArray) {
+  const doRemoveBg = removeBgCheck.checked;
+  const total = fileArray.length;
+
+  statusEl.textContent = `Obrađujem ${total} slika(e)${doRemoveBg ? ' + uklanjam pozadinu...' : '...'}`;
+  progressWrap.style.display = 'block';
+  progressBar.style.width = '0%';
+
+  const cards = fileArray.map(file => {
+    const card = createCard(file.name);
+    grid.appendChild(card.el);
+    return card;
+  });
+
+  let done = 0;
+
+  const results = await Promise.allSettled(
+    fileArray.map(async (file, i) => {
+      let sourceFile = file;
+
+      if (doRemoveBg) {
+        cards[i].processing.textContent = '🪄 Uklanjam pozadinu...';
+        try {
+          let inputForAI = file;
+          if (file.type === 'image/avif' || file.name.match(/\.avif$/i)) {
+            inputForAI = await convertToPng(file);
+          }
+          const blob = await removeBackground(inputForAI, {
+            model: 'large',
+            output: { format: 'image/png', quality: 1 },
+          });
+          sourceFile = new File([blob], file.name, { type: 'image/png' });
+        } catch (e) {
+          console.error('BG removal error:', e);
+          cards[i].processing.textContent = '⚠️ BG removal fail, resize...';
+        }
+      }
+
+      cards[i].processing.textContent = '⏳ Resize...';
+      const dataUrl = await resizeImage(sourceFile);
+      done++;
+      progressBar.style.width = `${Math.round((done / total) * 100)}%`;
+      return { dataUrl, index: i };
+    })
+  );
+
+  results.forEach((result, i) => {
+    const card = cards[i];
+    if (result.status === 'fulfilled') {
+      const { dataUrl } = result.value;
+      const img = new Image();
+      img.onload = () => card.canvas.getContext('2d').drawImage(img, 0, 0, 300, 300);
+      img.src = dataUrl;
+      card.link.href = dataUrl;
+      card.link.style.display = 'inline-block';
+      card.processing.style.display = 'none';
+      const baseName = fileArray[i].name.replace(/\.[^.]+$/, '');
+      const sz = outputSizeEl.value;
+      processedImages.push({ name: `${baseName}-${sz}x${sz}.png`, dataUrl });
+    } else {
+      card.processing.textContent = '❌ Greška';
+    }
+  });
+
+  progressBar.style.width = '100%';
+  const successCount = results.filter(r => r.status === 'fulfilled').length;
+  statusEl.textContent = `✅ Gotovo! ${successCount}/${total} slika obrađeno.`;
+  resultsBar.style.display = 'flex';
+}
+
+function createCard(filename) {
+  const el = document.createElement('div');
+  el.className = 'card';
+  const canvas = document.createElement('canvas');
+  canvas.width = 300; canvas.height = 300;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#f5f5f5';
+  ctx.fillRect(0, 0, 300, 300);
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = filename;
+  const processing = document.createElement('div');
+  processing.className = 'processing';
+  processing.textContent = '⏳ Obrađujem...';
+  const baseName = filename.replace(/\.[^.]+$/, '');
+  const sz = outputSizeEl.value;
+  const link = document.createElement('a');
+  link.download = `${baseName}-${sz}x${sz}.png`;
+  link.textContent = '⬇️ Preuzmi';
+  link.style.display = 'none';
+  el.appendChild(canvas);
+  el.appendChild(name);
+  el.appendChild(processing);
+  el.appendChild(link);
+  return { el, canvas, link, processing };
+}
+
+async function resizeImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = async () => {
+      try {
+        const SCALE     = 2;
+        const OUT_SIZE  = parseInt(outputSizeEl.value);
+        const WORK_SIZE = OUT_SIZE * SCALE;
+        const PADDING   = 10 * SCALE;
+        // WM_RESERVE garantuje da slika ne siže ispod OUT_SIZE-34 u finalnom canvasu
+        const WM_RESERVE = useWatermark.checked ? 48 * SCALE : 0;
+        const maxWidth  = WORK_SIZE - PADDING * 2;
+        const maxHeight = WORK_SIZE - PADDING * 2 - WM_RESERVE;
+
+        const tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width  = img.naturalWidth;
+        tmpCanvas.height = img.naturalHeight;
+        const tmpCtx = tmpCanvas.getContext('2d');
+        tmpCtx.imageSmoothingEnabled = false;
+        tmpCtx.drawImage(img, 0, 0);
+
+        const ratio     = Math.min(maxWidth / img.naturalWidth, maxHeight / img.naturalHeight);
+        const newWidth  = Math.round(img.naturalWidth  * ratio);
+        const newHeight = Math.round(img.naturalHeight * ratio);
+
+        const resizeCanvas = document.createElement('canvas');
+        resizeCanvas.width  = newWidth;
+        resizeCanvas.height = newHeight;
+
+        await picaInstance.resize(tmpCanvas, resizeCanvas, {
+          quality: 3,
+          unsharpAmount: 220,
+          unsharpRadius: 0.4,
+          unsharpThreshold: 0,
+          alpha: true
+        });
+
+        const workCanvas = document.createElement('canvas');
+        workCanvas.width  = WORK_SIZE;
+        workCanvas.height = WORK_SIZE;
+        const workCtx = workCanvas.getContext('2d');
+        workCtx.fillStyle = 'white';
+        workCtx.fillRect(0, 0, WORK_SIZE, WORK_SIZE);
+        // Horizontalno centrirano, vertikalno od vrha sa paddingom
+        // Tako je dno uvijek slobodno za watermark
+        workCtx.drawImage(resizeCanvas, (WORK_SIZE - newWidth) / 2, PADDING);
+
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width  = OUT_SIZE;
+        finalCanvas.height = OUT_SIZE;
+        const finalCtx = finalCanvas.getContext('2d');
+        finalCtx.fillStyle = 'white';
+        finalCtx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
+
+        await picaInstance.resize(workCanvas, finalCanvas, {
+          quality: 3,
+          unsharpAmount: 180,
+          unsharpRadius: 0.4,
+          unsharpThreshold: 0
+        });
+
+        // Watermark — centriran divider na dnu slike
+        if (useWatermark.checked) {
+          const text = 'www.digitalnicjenovnik.com';
+          // Skaliranje proporcionalno uz OUT_SIZE (baza 300px = 8px font)
+          const fontPx   = Math.round(OUT_SIZE * 8 / 300);
+          const margin   = Math.round(OUT_SIZE * 8 / 300);
+          const y        = OUT_SIZE - 15;  // fiksno 15px od dna, ne skalira
+          const cx       = OUT_SIZE / 2;
+          const gap      = Math.round(OUT_SIZE * 5 / 300);
+          const lineW    = OUT_SIZE * 0.7 / 300;
+
+          finalCtx.save();
+          finalCtx.globalAlpha = 0.45;
+          finalCtx.font = `bold ${fontPx}px Arial`;
+          finalCtx.fillStyle = '#555555';
+          finalCtx.textAlign = 'center';
+          finalCtx.textBaseline = 'middle';
+
+          const textW    = finalCtx.measureText(text).width;
+          const lineStart  = margin;
+          const lineEnd    = cx - textW / 2 - gap;
+          const lineStart2 = cx + textW / 2 + gap;
+          const lineEnd2   = OUT_SIZE - margin;
+
+          // Lijeva linija
+          finalCtx.strokeStyle = '#555555';
+          finalCtx.lineWidth = lineW;
+          finalCtx.beginPath();
+          finalCtx.moveTo(lineStart, y);
+          finalCtx.lineTo(lineEnd, y);
+          finalCtx.stroke();
+
+          // Tekst
+          finalCtx.fillText(text, cx, y);
+
+          // Desna linija
+          finalCtx.beginPath();
+          finalCtx.moveTo(lineStart2, y);
+          finalCtx.lineTo(lineEnd2, y);
+          finalCtx.stroke();
+
+          finalCtx.restore();
+        }
+
+        resolve(finalCanvas.toDataURL('image/png'));
+      } catch (err) { reject(err); }
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function convertToPng(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
+      c.toBlob(blob => {
+        URL.revokeObjectURL(img.src);
+        blob ? resolve(blob) : reject(new Error('toBlob failed'));
+      }, 'image/png');
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ── Download sve ──
+downloadAllBtn.addEventListener('click', async () => {
+  if (!processedImages.length) return;
+  downloadAllBtn.disabled = true;
+
+  for (let i = 0; i < processedImages.length; i++) {
+    const { name, dataUrl } = processedImages[i];
+    downloadAllBtn.textContent = `⏳ ${i + 1}/${processedImages.length}...`;
+
+    if (selectedDirHandle) {
+      try {
+        const fileHandle = await selectedDirHandle.getFileHandle(name, { create: true });
+        const writable   = await fileHandle.createWritable();
+        const base64     = dataUrl.split(',')[1];
+        const binary     = atob(base64);
+        const bytes      = new Uint8Array(binary.length);
+        for (let j = 0; j < binary.length; j++) bytes[j] = binary.charCodeAt(j);
+        await writable.write(new Blob([bytes], { type: 'image/png' }));
+        await writable.close();
+      } catch (e) { console.error('Greška pri čuvanju:', e); }
+    } else {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = name;
+      a.click();
+      await new Promise(res => setTimeout(res, 100));
+    }
+  }
+
+  downloadAllBtn.textContent = '⬇️ Preuzmi sve slike';
+  downloadAllBtn.disabled = false;
+  if (selectedDirHandle) statusEl.textContent = `✅ Sve slike sačuvane u: ${selectedDirHandle.name}`;
+});
+
+// ── Nova obrada ──
+clearAllBtn.addEventListener('click', () => {
+  grid.innerHTML = '';
+  processedImages.length = 0;
+  pendingFiles = [];
+  resultsBar.style.display = 'none';
+  progressWrap.style.display = 'none';
+  progressBar.style.width = '0%';
+  statusEl.textContent = '';
+  fileListEl.style.display = 'none';
+  startBtn.style.display = 'none';
+  startBtn.disabled = false;
+
+  // Reset koraci
+  step1.classList.remove('done'); step1.classList.add('active');
+  step2.classList.remove('done', 'active');
+  step3.classList.remove('done', 'active');
+  document.getElementById('step1Status').textContent = 'nije odabran';
+  document.getElementById('step1Status').style.color = '#888';
+  document.getElementById('step2Status').textContent = '—';
+  document.getElementById('step3Status').textContent = '—';
+  selectedDirHandle = null;
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digitalni Cjenovnik — Alati</title>
+<meta name="description" content="Interni alati za Digitalni Cjenovnik: QR karta pića, batch resize slika, WiFi poster.">
+<link rel="stylesheet" href="admin-styles.css?v=20260808">
+</head>
+<body>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><span class="num">DC</span></div>
+      <div class="brand-title">Digitalni Cjenovnik</div>
+      <div class="brand-sub">Panel alata</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">Alati</div>
+
+      <button class="nav-item" data-tool="qr">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+            <path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v.01"></path>
+          </svg>
+        </span>
+        <span class="nav-text">
+          <span class="t">QR Karta Pića</span>
+          <span class="d">Generator QR kartice za sto</span>
+        </span>
+      </button>
+
+      <button class="nav-item" data-tool="resize">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <circle cx="9" cy="9" r="1.6"></circle>
+            <path d="M21 15l-5-5-4 4-3-3-5 5"></path>
+          </svg>
+        </span>
+        <span class="nav-text">
+          <span class="t">Resize Slika</span>
+          <span class="d">Batch obrada fotografija</span>
+        </span>
+      </button>
+
+      <button class="nav-item" data-tool="wifi">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12.5a11 11 0 0 1 14 0"></path>
+            <path d="M8.3 16a6.5 6.5 0 0 1 7.4 0"></path>
+            <circle cx="12" cy="19.2" r="1.1" fill="currentColor" stroke="none"></circle>
+          </svg>
+        </span>
+        <span class="nav-text">
+          <span class="t">WiFi Poster</span>
+          <span class="d">Poster za štampu sa WiFi QR</span>
+        </span>
+      </button>
+    </nav>
+
+    <div class="sidebar-foot">Interni alati &middot; Digitalni Cjenovnik</div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Meni">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>
+      </button>
+      <div class="topbar-title"><span class="accent full">Alat: </span><span id="topbarTitleText">QR Kod Karta Pića</span></div>
+    </header>
+
+    <div class="stage-wrap">
+      <div class="stage" id="stage"></div>
+    </div>
+  </div>
+
+  <script src="admin-script.js?v=20260808"></script>
+</body>
+</html>

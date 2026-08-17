@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WiFi Poster Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --gold-1:#f6dfa6;
+    --gold-2:#caa456;
+    --gold-3:#8a6a2f;
+    --paper:#f2f0ea;
+    --ink:#111;
+    --muted:#6b6b6b;
+    --line:#ddd8cb;
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--paper);
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    padding:32px 16px;
+  }
+  .app{
+    width:100%;
+    max-width:1180px;
+    display:grid;
+    grid-template-columns:380px 1fr;
+    gap:28px;
+    align-items:start;
+  }
+  @media (max-width:920px){
+    .app{grid-template-columns:1fr;}
+  }
+
+  /* ---------- CONTROLS ---------- */
+  .controls{
+    background:var(--card);
+    border:1px solid var(--line);
+    padding:28px 26px;
+  }
+  .eyebrow-label{
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--gold-3);
+    margin:0 0 4px;
+  }
+  h1{
+    font-size:22px;
+    margin:0 0 22px;
+    letter-spacing:-.01em;
+  }
+  fieldset{
+    border:none;
+    padding:0;
+    margin:0 0 22px;
+  }
+  legend{
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    padding:0 0 8px;
+    border-bottom:1px solid var(--line);
+    width:100%;
+    margin-bottom:12px;
+  }
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin:12px 0 5px;
+  }
+  label.first{margin-top:0;}
+  input[type=text], input[type=password], select, textarea{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    font-family:inherit;
+    font-size:13.5px;
+    color:var(--ink);
+    outline:none;
+  }
+  textarea{resize:vertical; min-height:44px;}
+  input:focus, select:focus, textarea:focus{border-color:var(--gold-2);}
+  .pw-row{display:flex; gap:6px;}
+  .pw-row input{flex:1;}
+  .toggle-pw{
+    border:1px solid var(--line);
+    background:var(--paper);
+    color:var(--muted);
+    font-size:10.5px;
+    letter-spacing:.04em;
+    padding:0 10px;
+    cursor:pointer;
+    text-transform:uppercase;
+  }
+  .toggle-pw:hover{border-color:var(--gold-2); color:var(--gold-3);}
+  .checkline{
+    margin-top:14px;
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .checkline input{width:14px;height:14px; accent-color:var(--gold-2);}
+  .checkline span{font-size:12.5px;}
+  .range-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:8px;
+  }
+  input[type=range]{flex:1; accent-color:var(--gold-2);}
+  .range-val{
+    font-size:12px;
+    color:var(--gold-3);
+    min-width:42px;
+    text-align:right;
+  }
+  .swatches{display:flex; gap:8px; margin-top:8px;}
+  .swatch{
+    width:28px;height:28px;
+    border-radius:50%;
+    cursor:pointer;
+    border:2px solid transparent;
+  }
+  .swatch.active{border-color:var(--ink);}
+  .sw-gold{background:linear-gradient(135deg,#f6dfa6,#caa456);}
+  .sw-emerald{background:linear-gradient(135deg,#bfe3c6,#3a7d44);}
+  .sw-rose{background:linear-gradient(135deg,#f2c9c4,#b5544a);}
+  .sw-silver{background:linear-gradient(135deg,#eaeaea,#9a9a9a);}
+
+  .actions{display:flex; flex-direction:column; gap:10px; margin-top:22px;}
+  .btn{
+    padding:12px;
+    border:none;
+    font-family:inherit;
+    font-size:12.5px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--ink); color:#fff;}
+  .btn-primary:hover{background:#000;}
+  .btn-outline{background:transparent; border:1px solid var(--ink); color:var(--ink);}
+  .btn-outline:hover{background:var(--ink); color:#fff;}
+  .btn[disabled]{opacity:.5; cursor:progress;}
+  .hint{font-size:11px; color:var(--muted); margin-top:6px; line-height:1.5;}
+
+  /* ---------- PREVIEW ---------- */
+  .preview-wrap{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .preview-shell{
+    width:397px;
+    height:397px;
+    overflow:hidden;
+    position:relative;
+    box-shadow:0 8px 30px rgba(0,0,0,.18);
+  }
+  .zoom-note{font-size:11px; color:var(--muted); margin-top:12px;}
+
+  /* ---------- POSTER (real size 794x1123 = A4 @96dpi) ---------- */
+  .poster{
+    width:794px;
+    height:794px;
+    position:absolute;
+    top:0; left:0;
+    transform:scale(0.5);
+    transform-origin:top left;
+    background:radial-gradient(circle at 50% 0%, #1c1c1c 0%, #0a0a0a 65%);
+    color:#fff;
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    padding:20px;
+    overflow:hidden;
+  }
+  .poster-border{
+    position:relative;
+    width:100%;
+    height:100%;
+    border:1.5px solid var(--gold-2);
+    border-radius:6px;
+    padding:26px 30px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+  .deco{
+    position:absolute;
+    opacity:.06;
+    pointer-events:none;
+  }
+  .deco.tl{top:-40px; left:-60px; width:260px;}
+  .deco.br{bottom:-50px; right:-50px; width:220px; transform:rotate(180deg);}
+
+  .wifi-icon svg{display:block;}
+  .top-icon{width:48px; height:48px; margin-bottom:8px;}
+  .eyebrow-title{
+    font-size:16px;
+    letter-spacing:.4em;
+    font-weight:600;
+    color:#fff;
+    margin:0 0 2px;
+    padding-left:.4em;
+  }
+  .main-title{
+    font-size:58px;
+    font-weight:800;
+    letter-spacing:.02em;
+    margin:2px 0 10px;
+    line-height:1;
+    color:var(--gold-1);
+    text-shadow:0 2px 10px rgba(0,0,0,.35);
+  }
+  .rule{
+    width:100px;
+    height:1px;
+    background:var(--gold-2);
+    margin:0 0 12px;
+    position:relative;
+  }
+  .rule::after{
+    content:"";
+    position:absolute;
+    left:50%; top:-3px;
+    transform:translateX(-50%);
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--gold-2);
+  }
+  .subtitle{
+    font-size:15.5px;
+    font-weight:600;
+    line-height:1.4;
+    max-width:440px;
+    white-space:pre-line;
+    margin:0 0 18px;
+  }
+  .subtitle b{color:var(--gold-1); font-weight:700;}
+
+  .qr-frame{
+    background:#fff;
+    padding:16px;
+    border-radius:14px;
+    position:relative;
+    box-shadow:0 0 0 1.5px var(--gold-2), 0 10px 40px rgba(0,0,0,.4);
+  }
+  #qrcode{display:flex; align-items:center; justify-content:center; position:relative;}
+  #qrcode img, #qrcode canvas{display:block;}
+  .qr-logo{
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background:#0a0a0a;
+    border:2px solid var(--gold-2);
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .qr-logo.has-custom{
+    background:#ffffff;
+    border:none;
+    border-radius:4px;
+    padding:3px;
+  }
+  .qr-logo svg{width:55%; height:55%;}
+  #customLogoImg{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:block;
+  }
+
+  .info-list{
+    width:100%;
+    max-width:460px;
+    margin-top:16px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .info-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    border:1px solid var(--gold-3);
+    border-radius:8px;
+    padding:8px 14px;
+    text-align:left;
+  }
+  .info-icon{
+    width:30px; height:30px;
+    min-width:30px;
+    border-radius:50%;
+    background:linear-gradient(135deg, var(--gold-1), var(--gold-2));
+    display:flex; align-items:center; justify-content:center;
+  }
+  .info-icon svg{width:16px; height:16px; color:#151515;}
+  .info-text{overflow:hidden;}
+  .info-label{
+    font-size:9.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:#c9c9c9;
+    margin:0 0 1px;
+  }
+  .info-value{
+    font-size:16px;
+    font-weight:700;
+    color:var(--gold-1);
+    margin:0;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .footer-text{
+    margin-top:12px;
+    padding-top:0;
+    font-size:14px;
+    font-style:italic;
+    color:var(--gold-1);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <p class="eyebrow-label">Poster generator</p>
+    <h1>WiFi poster za štampu</h1>
+
+    <fieldset>
+      <legend>Tekst na posteru</legend>
+      <label class="first">Gornji natpis</label>
+      <input type="text" id="eyebrow" value="BESPLATAN">
+      <label>Naslov</label>
+      <input type="text" id="title" value="Wi-Fi">
+      <label>Podnaslov</label>
+      <textarea id="subtitle">Skenirajte QR kod i povežite se
+na našu Wi-Fi mrežu</textarea>
+      <label>Tekst u podnožju</label>
+      <input type="text" id="footer" value="Hvala što ste naši gosti!">
+    </fieldset>
+
+    <fieldset>
+      <legend>Podaci o mreži</legend>
+      <label class="first">Naziv mreže (SSID)</label>
+      <input type="text" id="ssid" value="2.4G-DUKE">
+      <label>Lozinka</label>
+      <div class="pw-row">
+        <input type="password" id="password" value="Rebels69">
+        <button type="button" class="toggle-pw" id="togglePw">Prikaži</button>
+      </div>
+      <label>Tip enkripcije</label>
+      <select id="enctype">
+        <option value="WPA" selected>WPA / WPA2</option>
+        <option value="WEP">WEP</option>
+        <option value="nopass">Bez lozinke (otvorena)</option>
+      </select>
+      <div class="checkline">
+        <input type="checkbox" id="hidden">
+        <span>Skrivena mreža</span>
+      </div>
+      <label>Lokacija (opciono)</label>
+      <input type="text" id="location" value="Kancelarija 1" placeholder="npr. Kancelarija 1">
+      <div class="checkline">
+        <input type="checkbox" id="showInfo" checked>
+        <span>Prikaži podatke o mreži na posteru</span>
+      </div>
+      <p class="hint" style="margin-top:4px;">Skeniranje QR koda već automatski povezuje gosta — ovo je opciono, za goste koji žele ručno unijeti podatke.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Izgled</legend>
+      <label class="first">Boja akcenta</label>
+      <div class="swatches">
+        <div class="swatch sw-gold active" data-c1="#f6dfa6" data-c2="#caa456" data-c3="#8a6a2f"></div>
+        <div class="swatch sw-emerald" data-c1="#bfe3c6" data-c2="#4c9a56" data-c3="#245332"></div>
+        <div class="swatch sw-rose" data-c1="#f2c9c4" data-c2="#c46a5f" data-c3="#7a352d"></div>
+        <div class="swatch sw-silver" data-c1="#f0f0f0" data-c2="#a8a8a8" data-c3="#5c5c5c"></div>
+      </div>
+      <label>Veličina QR koda</label>
+      <div class="range-row">
+        <input type="range" id="qrSize" min="40" max="100" value="60">
+        <span class="range-val" id="qrSizeVal">60 mm</span>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Logo u sredini QR koda</legend>
+      <label class="first">Slika loga (opciono)</label>
+      <input type="file" id="logoFile" accept="image/*">
+      <div class="range-row">
+        <input type="range" id="logoSize" min="10" max="75" value="30">
+        <span class="range-val" id="logoSizeVal">30%</span>
+      </div>
+      <button type="button" class="btn btn-outline" id="removeLogo" style="margin-top:10px;">Ukloni logo (vrati WiFi ikonu)</button>
+    </fieldset>
+
+    <div class="actions">
+      <label class="first" style="margin-top:0;">Veličina za štampu (kvadrat)</label>
+      <div class="range-row">
+        <input type="range" id="printSize" min="5" max="12" step="0.5" value="12">
+        <span class="range-val" id="printSizeVal">12 x 12 cm</span>
+      </div>
+      <button class="btn btn-primary" id="downloadPdf" style="margin-top:14px;">Preuzmi PDF za štampu</button>
+      <button class="btn btn-outline" id="downloadPng">Preuzmi kao PNG</button>
+    </div>
+    <p class="hint">PDF se generiše kao kvadrat u odabranoj veličini (max 12x12cm), u rezoluciji pogodnoj za štampu (300+ dpi).</p>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-wrap">
+    <div class="preview-shell" id="previewShell">
+      <div class="poster" id="poster">
+        <svg class="deco tl" viewBox="0 0 100 100"><path d="M10 70 a60 60 0 0 1 80 0" stroke="white" stroke-width="4" fill="none"/><path d="M25 78 a42 42 0 0 1 55 0" stroke="white" stroke-width="4" fill="none"/><circle cx="50" cy="88" r="4" fill="white"/></svg>
+        <svg class="deco br" viewBox="0 0 100 100"><path d="M10 70 a60 60 0 0 1 80 0" stroke="white" stroke-width="4" fill="none"/><path d="M25 78 a42 42 0 0 1 55 0" stroke="white" stroke-width="4" fill="none"/><circle cx="50" cy="88" r="4" fill="white"/></svg>
+
+        <div class="poster-border">
+          <div class="top-icon wifi-icon">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 38 C32 12 68 12 92 38" stroke="url(#g1)" stroke-width="7" stroke-linecap="round"/>
+              <path d="M22 55 C38 38 62 38 78 55" stroke="url(#g1)" stroke-width="7" stroke-linecap="round"/>
+              <path d="M37 71 C44 63 56 63 63 71" stroke="url(#g1)" stroke-width="7" stroke-linecap="round"/>
+              <circle cx="50" cy="84" r="6" fill="url(#g1)"/>
+              <defs><linearGradient id="g1" x1="0" y1="0" x2="100" y2="100"><stop offset="0" stop-color="#f6dfa6"/><stop offset="1" stop-color="#8a6a2f"/></linearGradient></defs>
+            </svg>
+          </div>
+
+          <p class="eyebrow-title" id="pEyebrow">BESPLATAN</p>
+          <h2 class="main-title" id="pTitle">Wi-Fi</h2>
+          <div class="rule"></div>
+          <p class="subtitle" id="pSubtitle">Skenirajte QR kod i povežite se<br>na našu Wi-Fi mrežu</p>
+
+          <div class="qr-frame">
+            <div id="qrcode"></div>
+            <div class="qr-logo" id="qrLogo">
+              <svg id="defaultLogoIcon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 40 C32 16 68 16 90 40" stroke="var(--gold-2)" stroke-width="9" stroke-linecap="round"/>
+                <path d="M25 57 C40 41 60 41 75 57" stroke="var(--gold-2)" stroke-width="9" stroke-linecap="round"/>
+                <path d="M40 73 C46 66 54 66 60 73" stroke="var(--gold-2)" stroke-width="9" stroke-linecap="round"/>
+                <circle cx="50" cy="85" r="7" fill="var(--gold-2)"/>
+              </svg>
+              <img id="customLogoImg" style="display:none;">
+            </div>
+          </div>
+
+          <div class="info-list" id="infoList">
+            <div class="info-row">
+              <div class="info-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8.5c6-5.5 14-5.5 20 0"/><path d="M5.5 12.5c4-3.5 9-3.5 13 0"/><path d="M9 16.5c2-1.7 4-1.7 6 0"/><circle cx="12" cy="19.5" r="1.2" fill="currentColor"/></svg>
+              </div>
+              <div class="info-text">
+                <p class="info-label">Naziv mreže (SSID)</p>
+                <p class="info-value" id="rSsid">2.4G-DUKE</p>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              </div>
+              <div class="info-text">
+                <p class="info-label">Lozinka</p>
+                <p class="info-value" id="rPass">Rebels69</p>
+              </div>
+            </div>
+            <div class="info-row" id="locRow">
+              <div class="info-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+              </div>
+              <div class="info-text">
+                <p class="info-label">Lokacija</p>
+                <p class="info-value" id="rLoc">Kancelarija 1</p>
+              </div>
+            </div>
+          </div>
+
+          <p class="footer-text" id="pFooter">Hvala što ste naši gosti!</p>
+        </div>
+      </div>
+    </div>
+    <p class="zoom-note">Prikaz je umanjen &mdash; PDF/PNG se generišu u punoj rezoluciji za štampu.</p>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const fields = {
+  eyebrow: $('eyebrow'), title: $('title'), subtitle: $('subtitle'), footer: $('footer'),
+  ssid: $('ssid'), password: $('password'), enctype: $('enctype'), hidden: $('hidden'),
+  location: $('location'), qrSize: $('qrSize'), showInfo: $('showInfo')
+};
+
+function escapeWifi(str){ return str.replace(/([\\;,:"])/g, '\\$1'); }
+function escHtml(str){ return str.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function updateText(){
+  const eyebrowVal = fields.eyebrow.value.trim();
+  $('pEyebrow').textContent = eyebrowVal;
+  $('pEyebrow').style.display = eyebrowVal ? 'block' : 'none';
+
+  const titleVal = fields.title.value.trim();
+  $('pTitle').textContent = titleVal;
+  $('pTitle').style.display = titleVal ? 'block' : 'none';
+
+  $('pSubtitle').innerHTML = escHtml(fields.subtitle.value).replace(/\n/g,'<br>');
+  $('pFooter').textContent = fields.footer.value;
+  $('rSsid').textContent = fields.ssid.value || '—';
+  $('rPass').textContent = fields.enctype.value === 'nopass' ? '(otvorena mreža)' : (fields.password.value || '—');
+
+  const loc = fields.location.value.trim();
+  $('locRow').style.display = loc ? 'flex' : 'none';
+  $('rLoc').textContent = loc;
+
+  $('infoList').style.display = fields.showInfo.checked ? 'flex' : 'none';
+}
+
+let qrPxSize = 0;
+function mmToPx(mm){ return Math.round(mm * (794/210)); }
+
+function generateQR(){
+  const ssid = fields.ssid.value.trim();
+  if(!ssid){ fields.ssid.style.borderColor = '#c0392b'; fields.ssid.focus(); return; }
+  fields.ssid.style.borderColor = '';
+
+  const enc = fields.enctype.value;
+  const pw = fields.password.value;
+  const isHidden = fields.hidden.checked;
+
+  let wifiString;
+  if(enc === 'nopass'){
+    wifiString = `WIFI:T:nopass;S:${escapeWifi(ssid)};P:;H:${isHidden?'true':'false'};;`;
+  } else {
+    wifiString = `WIFI:T:${enc};S:${escapeWifi(ssid)};P:${escapeWifi(pw)};H:${isHidden?'true':'false'};;`;
+  }
+
+  qrPxSize = mmToPx(parseInt(fields.qrSize.value,10));
+  const qrDiv = $('qrcode');
+  qrDiv.innerHTML = '';
+  qrDiv.style.width = qrPxSize + 'px';
+  qrDiv.style.height = qrPxSize + 'px';
+
+  new QRCode(qrDiv, {
+    text: wifiString,
+    width: qrPxSize,
+    height: qrPxSize,
+    colorDark: '#0a0a0a',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  updateLogoSize();
+}
+
+let logoAspect = 1; // width / height, updated when a custom image is loaded
+
+function updateLogoSize(){
+  if(!qrPxSize) return;
+  const logo = $('qrLogo');
+  const pct = parseInt($('logoSize').value, 10) / 100;
+  const hasCustom = logo.classList.contains('has-custom');
+
+  if(hasCustom){
+    const w = Math.round(qrPxSize * pct);
+    const h = Math.round(w / logoAspect);
+    logo.style.width = w + 'px';
+    logo.style.height = h + 'px';
+  } else {
+    const s = Math.round(qrPxSize * pct);
+    logo.style.width = s + 'px';
+    logo.style.height = s + 'px';
+  }
+}
+
+// accent color swatches
+document.querySelectorAll('.swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+    const root = document.documentElement.style;
+    root.setProperty('--gold-1', sw.dataset.c1);
+    root.setProperty('--gold-2', sw.dataset.c2);
+    root.setProperty('--gold-3', sw.dataset.c3);
+    generateQR();
+  });
+});
+
+fields.qrSize.addEventListener('input', () => {
+  $('qrSizeVal').textContent = fields.qrSize.value + ' mm';
+});
+let qrDebounce;
+fields.qrSize.addEventListener('input', () => {
+  clearTimeout(qrDebounce);
+  qrDebounce = setTimeout(generateQR, 120);
+});
+
+[fields.ssid, fields.password, fields.enctype, fields.hidden].forEach(el => {
+  el.addEventListener('change', generateQR);
+});
+fields.password.addEventListener('input', () => clearTimeout(window._pwT) & (window._pwT = setTimeout(generateQR, 300)));
+fields.ssid.addEventListener('input', () => clearTimeout(window._ssidT) & (window._ssidT = setTimeout(generateQR, 300)));
+
+[fields.eyebrow, fields.title, fields.subtitle, fields.footer, fields.location].forEach(el => {
+  el.addEventListener('input', updateText);
+});
+fields.showInfo.addEventListener('change', updateText);
+
+$('togglePw').addEventListener('click', () => {
+  const isPw = fields.password.type === 'password';
+  fields.password.type = isPw ? 'text' : 'password';
+  $('togglePw').textContent = isPw ? 'Sakrij' : 'Prikaži';
+});
+
+// ---- Custom logo upload ----
+const logoFileInput = $('logoFile');
+const logoSizeInput = $('logoSize');
+const defaultLogoIcon = $('defaultLogoIcon');
+const customLogoImg = $('customLogoImg');
+
+logoFileInput.addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const tempImg = new Image();
+    tempImg.onload = () => {
+      logoAspect = tempImg.naturalWidth / tempImg.naturalHeight || 1;
+      customLogoImg.src = ev.target.result;
+      customLogoImg.style.display = 'block';
+      defaultLogoIcon.style.display = 'none';
+      $('qrLogo').classList.add('has-custom');
+      updateLogoSize();
+    };
+    tempImg.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+logoSizeInput.addEventListener('input', () => {
+  $('logoSizeVal').textContent = logoSizeInput.value + '%';
+  updateLogoSize();
+});
+
+$('removeLogo').addEventListener('click', () => {
+  logoFileInput.value = '';
+  customLogoImg.src = '';
+  customLogoImg.style.display = 'none';
+  defaultLogoIcon.style.display = 'block';
+  $('qrLogo').classList.remove('has-custom');
+  logoAspect = 1;
+  updateLogoSize();
+});
+
+// ---- Export helpers: temporarily un-scale the poster for full-res capture ----
+async function captureCanvas(){
+  const poster = $('poster');
+  const shell = $('previewShell');
+  const originalCss = poster.style.cssText;
+
+  document.body.appendChild(poster);
+  poster.style.transform = 'none';
+  poster.style.position = 'fixed';
+  poster.style.left = '-10000px';
+  poster.style.top = '0';
+
+  await new Promise(r => setTimeout(r, 50));
+  const canvas = await html2canvas(poster, { scale: 3, backgroundColor: '#0a0a0a', useCORS: true });
+
+  poster.style.cssText = originalCss;
+  shell.appendChild(poster);
+
+  return canvas;
+}
+
+$('downloadPng').addEventListener('click', async () => {
+  const btn = $('downloadPng');
+  btn.disabled = true; btn.textContent = 'Priprema...';
+  try{
+    const canvas = await captureCanvas();
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `wifi-poster-${(fields.ssid.value||'wifi').replace(/[^a-z0-9]/gi,'_')}.png`;
+    a.click();
+  } finally {
+    btn.disabled = false; btn.textContent = 'Preuzmi kao PNG';
+  }
+});
+
+$('downloadPdf').addEventListener('click', async () => {
+  const btn = $('downloadPdf');
+  btn.disabled = true; btn.textContent = 'Priprema PDF-a...';
+  try{
+    const canvas = await captureCanvas();
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+    const widthCm = parseFloat($('printSize').value);
+    const widthMm = widthCm * 10;
+    const heightMm = widthMm; // kvadratni format
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:[widthMm, heightMm], compress:true });
+    pdf.addImage(imgData, 'JPEG', 0, 0, widthMm, heightMm, undefined, 'FAST');
+    pdf.save(`wifi-poster-${(fields.ssid.value||'wifi').replace(/[^a-z0-9]/gi,'_')}.pdf`);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Preuzmi PDF za štampu';
+  }
+});
+
+$('printSize').addEventListener('input', () => {
+  const v = $('printSize').value;
+  $('printSizeVal').textContent = v + ' x ' + v + ' cm';
+});
+
+updateText();
+generateQR();
+</script>
+</body>
+</html>
