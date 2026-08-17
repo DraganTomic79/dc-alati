@@ -1,4 +1,46 @@
 (function () {
+  // Site-wide login gate (password stored encoded, not in plain text)
+  var GATE_PASSWORD_ENCODED = "RHJhZ2FuNjEwNzI4";
+  var gate = document.getElementById('gate');
+  var gatePassword = document.getElementById('gatePassword');
+  var gateSubmit = document.getElementById('gateSubmit');
+  var gateError = document.getElementById('gateError');
+  var SESSION_KEY = 'dc-alati-unlocked';
+
+  function unlock() {
+    gate.classList.add('unlocked');
+    try { sessionStorage.setItem(SESSION_KEY, '1'); } catch (e) {}
+  }
+
+  function tryUnlock() {
+    var entered = gatePassword.value;
+    var expected = atob(GATE_PASSWORD_ENCODED);
+    if (entered === expected) {
+      unlock();
+    } else {
+      gateError.classList.add('show');
+      gatePassword.classList.add('shake');
+      gatePassword.value = '';
+      gatePassword.focus();
+      setTimeout(function () { gatePassword.classList.remove('shake'); }, 350);
+    }
+  }
+
+  var alreadyUnlocked = false;
+  try { alreadyUnlocked = sessionStorage.getItem(SESSION_KEY) === '1'; } catch (e) {}
+  if (alreadyUnlocked) {
+    gate.classList.add('unlocked');
+  } else if (gatePassword) {
+    gatePassword.focus();
+  }
+
+  if (gateSubmit) gateSubmit.addEventListener('click', tryUnlock);
+  if (gatePassword) {
+    gatePassword.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') tryUnlock();
+    });
+  }
+
   var TOOLS = {
     qr: { file: 'alat-qr-kod.html', label: 'QR Kod Karta Pića' },
     resize: { file: 'alat-resize-slika.html', label: 'Batch Resize Slika' },

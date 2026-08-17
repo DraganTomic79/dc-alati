@@ -5,10 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Digitalni Cjenovnik — Alati</title>
 <meta name="description" content="Interni alati za Digitalni Cjenovnik: QR karta pića, batch resize slika, WiFi poster.">
-<link rel="stylesheet" href="admin-styles.css?v=20260808">
+<link rel="stylesheet" href="admin-styles.css?v=20260817">
 </head>
 <body>
 
+  <div class="gate" id="gate">
+    <div class="gate-box">
+      <div class="gate-mark">DC</div>
+      <h2>Zaštićen pristup</h2>
+      <p>Unesite lozinku za panel alata Digitalni Cjenovnik</p>
+      <input type="password" id="gatePassword" placeholder="Lozinka" autofocus autocomplete="current-password">
+      <button id="gateSubmit">Uđi</button>
+      <p class="gate-error" id="gateError">Pogrešna lozinka. Pokušajte ponovo.</p>
+    </div>
+  </div>
+
+  <div class="app-shell" id="appShell">
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
   <aside class="sidebar" id="sidebar">
@@ -80,7 +92,8 @@
       <div class="stage" id="stage"></div>
     </div>
   </div>
+  </div><!-- /.app-shell -->
 
-  <script src="admin-script.js?v=20260808"></script>
+  <script src="admin-script.js?v=20260817"></script>
 </body>
 </html>

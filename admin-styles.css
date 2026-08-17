@@ -52,6 +52,122 @@ body::before {
     radial-gradient(900px 500px at 100% 110%, rgba(198, 166, 100, 0.06), transparent 60%);
 }
 
+/* ---------------- Login gate ---------------- */
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(1200px 700px at 20% 0%, rgba(198, 166, 100, 0.14), transparent 55%),
+              radial-gradient(900px 600px at 90% 100%, rgba(198, 166, 100, 0.08), transparent 55%),
+              var(--charcoal-0);
+}
+
+.gate.unlocked { display: none; }
+
+.gate-box {
+  width: 100%;
+  max-width: 360px;
+  background: linear-gradient(180deg, var(--charcoal-1), var(--charcoal-2));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-deep);
+  padding: 36px 32px 30px;
+  text-align: center;
+}
+
+.gate-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: rgba(198, 166, 100, 0.12);
+  border: 1px solid var(--line);
+  color: var(--gold-bright);
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 18px;
+}
+
+.gate-box h2 {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 21px;
+  color: var(--gold-bright);
+  margin: 0 0 8px;
+}
+
+.gate-box p {
+  font-size: 13px;
+  color: var(--ink-faint);
+  margin: 0 0 22px;
+  line-height: 1.5;
+}
+
+.gate-box input[type="password"] {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--charcoal-0);
+  color: var(--ink);
+  font-size: 15px;
+  text-align: center;
+  letter-spacing: 0.04em;
+  margin-bottom: 14px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.gate-box input[type="password"]::placeholder { color: var(--ink-faint); }
+.gate-box input[type="password"]:focus {
+  border-color: var(--gold-dim);
+  box-shadow: 0 0 0 3px rgba(198, 166, 100, 0.15);
+}
+
+.gate-box button {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--gold-dim);
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  color: #221a0c;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 14.5px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.1s ease;
+}
+.gate-box button:hover { filter: brightness(1.08); }
+.gate-box button:active { transform: translateY(1px); }
+
+.gate-error {
+  color: #e08a7d;
+  font-size: 12.5px;
+  margin: 14px 0 0;
+  display: none;
+}
+.gate-error.show { display: block; }
+
+.gate-box input.shake { animation: shake 0.35s; }
+@keyframes shake {
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
 /* ---------------- Sidebar ---------------- */
 
 .sidebar {

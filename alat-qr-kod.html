@@ -283,90 +283,10 @@
             text-align: left;
         }
 
-        /* Password Gate Styles */
-        #password-gate {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-
-        .gate-box {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            text-align: center;
-            max-width: 350px;
-            width: 90%;
-        }
-
-        .gate-box h2 {
-            margin: 0 0 10px 0;
-            color: #333;
-            font-size: 22px;
-        }
-
-        .gate-box p {
-            color: #666;
-            font-size: 13px;
-            margin-bottom: 20px;
-        }
-
-        .gate-box input[type="password"] {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            box-sizing: border-box;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .gate-box input[type="password"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .gate-box button {
-            width: 100%;
-            background: #4caf50;
-            padding: 14px;
-            font-size: 16px;
-        }
-
-        .gate-box button:hover {
-            background: #45a049;
-        }
-
-        #gate-error {
-            color: #e53935;
-            font-size: 13px;
-            margin-top: 10px;
-            display: none;
-        }
     </style>
 </head>
 <body>
-    <!-- Password Gate -->
-    <div id="password-gate">
-        <div class="gate-box">
-            <h2>🔒 Zaštićen Pristup</h2>
-            <p>Unesite lozinku da pristupite QR Kod Generatoru</p>
-            <input type="password" id="gate-password" placeholder="Lozinka" autofocus onkeypress="if(event.key==='Enter') checkPassword()">
-            <button onclick="checkPassword()">Uđi</button>
-            <p id="gate-error">❌ Pogrešna lozinka. Pokušajte ponovo.</p>
-        </div>
-    </div>
-
-    <div class="container" id="app-content" style="display: none;">
+    <div class="container" id="app-content">
         <h1>☕ QR Kod Karta Pića - Dizajner</h1>
         <p class="subtitle">Kreirajte profesionalnu karticu za štampu (10x10cm, 300 DPI)</p>
         
@@ -519,22 +439,6 @@
     </div>
 
     <script>
-        // Simple password gate (password stored encoded, not in plain text)
-        const SITE_PASSWORD_ENCODED = "RHJhZ2FuNjEwNzI4";
-
-        function checkPassword() {
-            const input = document.getElementById('gate-password').value;
-            const decodedPassword = atob(SITE_PASSWORD_ENCODED);
-            if (input === decodedPassword) {
-                document.getElementById('password-gate').style.display = 'none';
-                document.getElementById('app-content').style.display = 'block';
-            } else {
-                document.getElementById('gate-error').style.display = 'block';
-                document.getElementById('gate-password').value = '';
-                document.getElementById('gate-password').focus();
-            }
-        }
-
         // Ensure password field is focused as soon as the page loads
         window.addEventListener('load', function() {
             document.getElementById('gate-password').focus();
